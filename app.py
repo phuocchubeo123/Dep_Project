@@ -19,25 +19,27 @@ main_screen = App_Tk(screenName = "Main Screen")
 main_screen.geometry('1800x1000')
 #main_screen.attributes('-fullscreen', False)
 
-progressbar_test = App_Progressbar(master = main_screen, length = 100, mode = 'determinate', orient = HORIZONTAL)
-progressbar_test.pack()
+progressbar_hand_tracking = App_Progressbar(master = main_screen, length = 200, mode = 'determinate', orient = HORIZONTAL)
 
-left_label = App_Label(master = main_screen, text = 'Welcome')
-left_label.configure(font = 20)
-left_label.place(relx = 0.1, rely = 0.1)
-left_label.video = cv2.VideoCapture(0)
-left_label.video.set(cv2.CAP_PROP_FRAME_WIDTH, 400)
-left_label.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 250)
+video_label = App_Label(master = main_screen)
+video_label.video = cv2.VideoCapture(0)
+video_label.video.set(cv2.CAP_PROP_FRAME_WIDTH, 400)
+video_label.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 250)
+video_label.show_frame()
 
-right_label = App_Label(master = main_screen, text = 'Right', another_label = left_label, progressbar = progressbar_test)
-right_label.place(relx = 0.9, rely = 0.1, anchor = 'ne')
+text_label = App_Label(master = main_screen, text = 'Welcome', friend_label = video_label, progressbar = progressbar_hand_tracking)
+text_label.configure(font = 30)
 
-start_video_button = App_Button(master = main_screen, text = "Take the video from the webcam", command = right_label.show_frame_from_another_label)
-start_video_button.place(relx = 0.5, rely = 0.7, anchor = 'center')
 
-stop_video_button = App_Button(master = main_screen, text = "Stop recording", command = right_label.callback)
-stop_video_button.place(relx = 0.5, rely = 0.8, anchor = 'center')
+start_video_button = App_Button(master = main_screen, text = "Take the video from the webcam", command = text_label.record_hand_tracking)
 
+stop_video_button = App_Button(master = main_screen, text = "Stop recording", command = video_label.callback)
+
+progressbar_hand_tracking.pack()
+text_label.pack()
+video_label.pack()
+start_video_button.pack()
+stop_video_button.pack()
 main_screen.mainloop()
 
 print()
