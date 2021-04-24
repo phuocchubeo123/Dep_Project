@@ -16,15 +16,7 @@ hands = mp_hands.Hands(
 	min_detection_confidence = 0.5,
 	min_tracking_confidence = 0.5)
 
-def draw_hand_tracking(image):
-	image.flags.writeable = False
-	results = hands.process(image)
-	image.flags.writeable = True
-	if results.multi_hand_landmarks:
-		for hand_landmarks in results.multi_hand_landmarks:
-			mp_drawing.draw_landmarks(
-				image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-	return image
+
 
 class App_Tk(Tk):
 	def __init__(self, screenName):
@@ -37,15 +29,33 @@ class App_Tk(Tk):
 		self.attributes("-fullscreen", self.fullscreenstate)
 
 class App_Label(Label):
-	def __init__(self, master, text = None, another_label = None, height = None, width = None, progressbar = None):
+	def __init__(self, master, text = None, friend_label = None, height = None, width = None,
+				 progressbar = None):
 		super().__init__(master = master, text = text, height = height, width = width)
 		self.master = master
 		self.count = 0
 		self.video = None
 		self.query = False
-		self.another_label = another_label
+		self.friend_label = friend_label
 		self.image = None
 		self.progressbar = progressbar
+		self.hand_tracking_flag = False
+		self.array = []
+
+	def change_hand_tracking_flag(self):
+		self.hand_tracking_flag = 1 - self.hand_tracking_flag
+
+	def draw_hand_tracking(self, image):
+		image.flags.writeable = False
+		results = hands.process(image)
+		hand_tracking_landmarks = results.multi_hand_landmarks
+		self.array.append(hand_tracking_landmarks)
+		image.flags.writeable = True
+		if results.multi_hand_landmarks:
+			for hand_landmarks in results.multi_hand_landmarks:
+				mp_drawing.draw_landmarks(
+					image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+		return image
 
 	def read_frame(self):
 		_, frame = self.video.read()
@@ -54,42 +64,41 @@ class App_Label(Label):
 
 	def show_frame(self):
 		self.read_frame()
-		img = PIL.Image.fromarray(self.image)
-		imgtk = ImageTk.PhotoImage(image = img)
-		self.imgtk = imgtk
-		self.configure(image = imgtk)
-
-	def show_frame_from_another_label(self):
-		print(self.count)
-		self.count += 1
-		self.another_label.show_frame()
-		if self.count <= 150:
-			if self.count % 50 == 1:
-				img2 = PIL.Image.fromarray(self.another_label.image.copy())
-				imgtk2 = ImageTk.PhotoImage(image = img2)
-				self.imgtk = imgtk2
-				self.configure(text = 3 - (self.count - 1) // 50)
-				self.imgtk = None
-			else:
-				pass
-			self.after_id = self.after(10, self.show_frame_from_another_label)
+		if self.hand_tracking_flag == False:
+			img = PIL.Image.fromarray(self.image)
 		else:
-			if self.count == 300:
-				self.callback()
-			else:
-				if self.progressbar:
-					self.progressbar['value'] = ((self.count - 150) * 100) // 150 + 2
-				img2 = PIL.Image.fromarray(draw_hand_tracking(self.another_label.image.copy()))
-				imgtk = ImageTk.PhotoImage(image = img2)
-				self.imgtk = imgtk
-				self.configure(image = self.imgtk)
-				self.after_id = self.after(10, self.show_frame_from_another_label)
+			img = PIL.Image.fromarray(self.draw_hand_tracking(self.image))
+		imgtk = ImageTk.PhotoImage(image=img)
+		self.imgtk = imgtk
+		self.configure(image=imgtk)
+		self.after_id = self.after(10, self.show_frame)
+
+	def record_hand_tracking(self):
+		self.count += 1
+		if self.count < 150:
+			if self.count % 50 == 1:
+				self.configure(text = f'Get ready: {3 - self.count // 50}')
+			self.after_id = self.after(10, self.record_hand_tracking)
+		elif self.count == 150:
+			self.friend_label.hand_tracking_flag = True
+			self.configure(text = 'Recording')
+			self.after_id = self.after(10, self.record_hand_tracking)
+		elif self.count < 300:
+			self.progressbar['value'] = ((self.count - 150) * 100) // 150 + 2
+			self.after_id = self.after(10, self.record_hand_tracking)
+		elif self.count == 300:
+			self.friend_label.hand_tracking_flag = False
+			self.configure(text = 'Your word is:')
+			self.friend_label.array = []
+			self.count = 0
+			self.progressbar['value'] = 0
+			self.after_cancel(self.after_id)
+			self.after_id = None
 
 	def callback(self):
 		if self.after_id:
 			self.after_cancel(self.after_id)
 			self.after_id = None
-			del self.imgtk
 			self.count = 0
 
 class App_Button(Button):
@@ -99,3 +108,7 @@ class App_Button(Button):
 class App_Progressbar(Progressbar):
 	def __init__(self, master, length = None, mode = None, orient = None):
 		super().__init__(master = master, length = length, mode = mode, orient = orient)
+
+class Text(Text):
+	def __init__(self, master):
+		super().__init__(master = master)
