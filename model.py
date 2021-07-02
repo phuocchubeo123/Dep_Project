@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import numpy.random as random
 import json
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -17,15 +18,20 @@ class RNN(nn.Module):
         output = self.foc(h_n[-1])
         return output
 
+
+folder_path = os.path.dirname(os.path.abspath(__file__))
+
 def load_word_dict():
-    tf = open("E:/project deep/word_list_111.json", "r")
+    word_dict_path = os.path.join(folder_path, 'word_list_111.json')
+    tf = open(word_dict_path, "r")
     word_dict = json.load(tf)
     tf.close()
     return word_dict
 
 def load_model():
+    model_path = os.path.join(folder_path, 'final_model1.pt')
     model = RNN(input_size=2 * 21 * 3, hidden_size=512, num_layers=2, num_classes=111)
-    model.load_state_dict(torch.load('E:/project deep/final_model1.pt', map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
     return model
 
